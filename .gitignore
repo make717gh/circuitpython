@@ -66,3 +66,7 @@ TAGS
 # POEdit mo files
 ####################
 *.mo
+
+# VSCode IDE
+###################
+.vscode/
