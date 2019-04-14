@@ -1,9 +1,9 @@
 /*
- * This file is part of the Micro Python project, http://micropython.org/
+ * This file is part of the MicroPython project, http://micropython.org/
  *
  * The MIT License (MIT)
  *
- * Copyright (c) 2019 Scott Shawcroft for Adafruit Industries
+ * Copyright (c) 2017 Scott Shawcroft for Adafruit Industries
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,15 +24,16 @@
  * THE SOFTWARE.
  */
 
-#ifndef MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYIO_BUILTINFONT_H
-#define MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYIO_BUILTINFONT_H
+#include "boards/board.h"
+#include "mpconfigboard.h"
+#include "hal/include/hal_gpio.h"
 
-#include "shared-module/displayio/BuiltinFont.h"
+void board_init(void) {
+}
 
-extern const mp_obj_type_t displayio_builtinfont_type;
+bool board_requests_safe_mode(void) {
+    return false;
+}
 
-mp_obj_t common_hal_displayio_builtinfont_get_bitmap(const displayio_builtinfont_t *self);
-mp_obj_t common_hal_displayio_builtinfont_get_bounding_box(const displayio_builtinfont_t *self);
-mp_obj_t common_hal_displayio_builtinfont_get_glyph(const displayio_builtinfont_t *self, mp_uint_t codepoint);
-
-#endif // MICROPY_INCLUDED_SHARED_BINDINGS_DISPLAYIO_BUILTINFONT_H
+void reset_board(void) {
+}

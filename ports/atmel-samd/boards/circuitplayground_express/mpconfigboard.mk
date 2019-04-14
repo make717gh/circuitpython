@@ -12,6 +12,7 @@ LONGINT_IMPL = MPZ
 # Make room for frozen libs.
 CIRCUITPY_DISPLAYIO = 0
 CIRCUITPY_FREQUENCYIO = 0
+CIRCUITPY_I2CSLAVE = 0
 
 CHIP_VARIANT = SAMD21G18A
 CHIP_FAMILY = samd21
@@ -24,5 +25,9 @@ FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_LIS3DH
 FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_NeoPixel
 FROZEN_MPY_DIRS += $(TOP)/frozen/Adafruit_CircuitPython_Thermistor
 
-#Adding per @danh to reduce memory usage and get the latest changes in
+# Tweak inlining depending on language.
+ifeq ($(TRANSLATION), zh_Latn_pinyin)
+CFLAGS_INLINE_LIMIT = 35
+else
 CFLAGS_INLINE_LIMIT = 55
+endif

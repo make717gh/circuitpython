@@ -88,6 +88,7 @@
 #define MICROPY_PY_BUILTINS_MEMORYVIEW   (1)
 #define MICROPY_PY_BUILTINS_MIN_MAX      (1)
 #define MICROPY_PY_BUILTINS_PROPERTY     (1)
+#define MICROPY_PY_BUILTINS_REVERSED     (1)
 #define MICROPY_PY_BUILTINS_SET          (1)
 #define MICROPY_PY_BUILTINS_SLICE        (1)
 #define MICROPY_PY_BUILTINS_SLICE_ATTRS  (1)
@@ -177,11 +178,11 @@ typedef long mp_off_t;
 
 // Remove some lesser-used functionality to make small builds fit.
 #define MICROPY_BUILTIN_METHOD_CHECK_SELF_ARG (CIRCUITPY_FULL_BUILD)
+#define MICROPY_CPYTHON_COMPAT                (CIRCUITPY_FULL_BUILD)
 #define MICROPY_MODULE_WEAK_LINKS             (CIRCUITPY_FULL_BUILD)
 #define MICROPY_PY_ALL_SPECIAL_METHODS        (CIRCUITPY_FULL_BUILD)
 #define MICROPY_PY_BUILTINS_COMPLEX           (CIRCUITPY_FULL_BUILD)
 #define MICROPY_PY_BUILTINS_FROZENSET         (CIRCUITPY_FULL_BUILD)
-#define MICROPY_PY_BUILTINS_REVERSED          (CIRCUITPY_FULL_BUILD)
 #define MICROPY_PY_BUILTINS_STR_CENTER        (CIRCUITPY_FULL_BUILD)
 #define MICROPY_PY_BUILTINS_STR_PARTITION     (CIRCUITPY_FULL_BUILD)
 #define MICROPY_PY_BUILTINS_STR_SPLITLINES    (CIRCUITPY_FULL_BUILD)
@@ -251,8 +252,29 @@ extern const struct _mp_obj_module_t bleio_module;
 #if CIRCUITPY_BOARD
 #define BOARD_MODULE           { MP_OBJ_NEW_QSTR(MP_QSTR_board), (mp_obj_t)&board_module },
 extern const struct _mp_obj_module_t board_module;
+
+#define BOARD_I2C (defined(DEFAULT_I2C_BUS_SDA) && defined(DEFAULT_I2C_BUS_SCL))
+#define BOARD_SPI (defined(DEFAULT_SPI_BUS_SCK) && defined(DEFAULT_SPI_BUS_MISO) && defined(DEFAULT_SPI_BUS_MOSI))
+#define BOARD_UART (defined(DEFAULT_UART_BUS_RX) && defined(DEFAULT_UART_BUS_TX))
+
+#if BOARD_I2C
+#define BOARD_I2C_ROOT_POINTER mp_obj_t shared_i2c_bus;
+#else
+#define BOARD_I2C_ROOT_POINTER
+#endif
+
+// SPI is always allocated off the heap.
+
+#if BOARD_UART
+#define BOARD_UART_ROOT_POINTER mp_obj_t shared_uart_bus;
+#else
+#define BOARD_UART_ROOT_POINTER
+#endif
+
 #else
 #define BOARD_MODULE
+#define BOARD_I2C_ROOT_POINTER
+#define BOARD_UART_ROOT_POINTER
 #endif
 
 #if CIRCUITPY_BUSIO
@@ -271,12 +293,15 @@ extern const struct _mp_obj_module_t digitalio_module;
 
 #if CIRCUITPY_DISPLAYIO
 extern const struct _mp_obj_module_t displayio_module;
+extern const struct _mp_obj_module_t fontio_module;
 extern const struct _mp_obj_module_t terminalio_module;
 #define DISPLAYIO_MODULE       { MP_OBJ_NEW_QSTR(MP_QSTR_displayio), (mp_obj_t)&displayio_module },
+#define FONTIO_MODULE       { MP_OBJ_NEW_QSTR(MP_QSTR_fontio), (mp_obj_t)&fontio_module },
 #define TERMINALIO_MODULE      { MP_OBJ_NEW_QSTR(MP_QSTR_terminalio), (mp_obj_t)&terminalio_module },
 #define CIRCUITPY_DISPLAY_LIMIT (3)
 #else
 #define DISPLAYIO_MODULE
+#define FONTIO_MODULE
 #define TERMINALIO_MODULE
 #define CIRCUITPY_DISPLAY_LIMIT (0)
 #endif
@@ -354,6 +379,13 @@ extern const struct _mp_obj_module_t os_module;
 #else
 #define OS_MODULE
 #define OS_MODULE_ALT_NAME
+#endif
+
+#if CIRCUITPY_PEW
+extern const struct _mp_obj_module_t pew_module;
+#define PEW_MODULE          { MP_OBJ_NEW_QSTR(MP_QSTR__pew),(mp_obj_t)&pew_module },
+#else
+#define PEW_MODULE
 #endif
 
 #if CIRCUITPY_PIXELBUF
@@ -470,13 +502,6 @@ extern const struct _mp_obj_module_t ustack_module;
 #define USTACK_MODULE
 #endif
 
-#if CIRCUITPY_PEW
-extern const struct _mp_obj_module_t pew_module;
-#define PEW_MODULE          { MP_OBJ_NEW_QSTR(MP_QSTR__pew),(mp_obj_t)&pew_module },
-#else
-#define PEW_MODULE
-#endif
-
 // These modules are not yet in shared-bindings, but we prefer the non-uxxx names.
 #if MICROPY_PY_UERRNO
 #define ERRNO_MODULE           { MP_ROM_QSTR(MP_QSTR_errno), MP_ROM_PTR(&mp_module_uerrno) },
@@ -523,8 +548,9 @@ extern const struct _mp_obj_module_t pew_module;
     BOARD_MODULE \
     BUSIO_MODULE \
     DIGITALIO_MODULE \
-      TERMINALIO_MODULE \
     DISPLAYIO_MODULE \
+      FONTIO_MODULE \
+      TERMINALIO_MODULE \
     ERRNO_MODULE \
     FREQUENCYIO_MODULE \
     GAMEPAD_MODULE \
@@ -541,6 +567,7 @@ extern const struct _mp_obj_module_t pew_module;
     PULSEIO_MODULE \
     RANDOM_MODULE \
     RE_MODULE \
+    ROTARYIO_MODULE \
     RTC_MODULE \
     SAMD_MODULE \
     STAGE_MODULE \
@@ -580,6 +607,8 @@ extern const struct _mp_obj_module_t pew_module;
     mp_obj_t gamepad_singleton; \
     mp_obj_t pew_singleton; \
     mp_obj_t terminal_tilegrid_tiles; \
+    BOARD_I2C_ROOT_POINTER \
+    BOARD_UART_ROOT_POINTER \
     FLASH_ROOT_POINTERS \
     NETWORK_ROOT_POINTERS \
 
@@ -592,6 +621,7 @@ void run_background_tasks(void);
 #define MICROPY_VM_HOOK_RETURN run_background_tasks();
 
 #define CIRCUITPY_AUTORELOAD_DELAY_MS 500
+#define CIRCUITPY_FILESYSTEM_FLUSH_INTERVAL_MS 1000
 #define CIRCUITPY_BOOT_OUTPUT_FILE "/boot_out.txt"
 
 #endif  // __INCLUDED_MPCONFIG_CIRCUITPY_H
